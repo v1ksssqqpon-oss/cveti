@@ -30,7 +30,7 @@
             color: var(--accent); text-transform: uppercase;
         }
 
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-bottom: 80px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
         
         .card {
             background: var(--card-bg);
@@ -61,9 +61,31 @@
         }
         .add-btn:active { background: var(--accent); color: white; }
 
+        /* СТИЛЬ КНОПКИ СВЯЗИ КАК В САЛОНАХ */
+        .support-btn {
+            display: block;
+            text-align: center;
+            text-decoration: none;
+            color: var(--text-sec);
+            font-size: 14px;
+            margin: 30px auto 50px;
+            padding: 12px;
+            border: 1px dashed #333;
+            border-radius: 16px;
+            transition: 0.3s;
+        }
+        .support-btn:active {
+            background: rgba(255, 77, 109, 0.1);
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+
         #form-page { display: none; padding: 20px; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 10px; color: var(--text-sec); text-transform: uppercase; margin-bottom: 5px; }
+        
         input {
-            width: 100%; padding: 14px; margin-bottom: 12px;
+            width: 100%; padding: 14px;
             background: #0a0a0a; border: 1px solid #333;
             border-radius: 12px; color: white; font-size: 16px;
             box-sizing: border-box; outline: none;
@@ -76,14 +98,26 @@
 <div id="main-page" class="container">
     <h1>Flower Boutique</h1>
     <div class="grid" id="catalog"></div>
+    
+    <a href="https://t.me/mishaswaga666" class="support-btn">
+        💬 Связаться с продавцом
+    </a>
 </div>
 
 <div id="form-page" class="container">
     <h1>Оформление</h1>
-    <input type="text" id="name" placeholder="Ваше Имя">
-    <input type="tel" id="phone" placeholder="Телефон (+7...)">
-    <input type="text" id="address" placeholder="Адрес доставки">
-    <input type="text" id="comment" placeholder="Комментарий">
+    <div class="input-group">
+        <label>Ваше Имя</label>
+        <input type="text" id="name" placeholder="Введите имя">
+    </div>
+    <div class="input-group">
+        <label>Телефон</label>
+        <input type="tel" id="phone" placeholder="+7...">
+    </div>
+    <div class="input-group">
+        <label>Адрес доставки</label>
+        <input type="text" id="address" placeholder="Город, улица, дом">
+    </div>
 </div>
 
 <script>
@@ -115,6 +149,7 @@
         cart.push(p);
         const total = cart.reduce((s, x) => s + x.price, 0);
         tg.MainButton.setText(`ОФОРМИТЬ: ${total}₽`).show();
+        tg.HapticFeedback.impactOccurred('light');
     }
 
     tg.MainButton.onClick(() => {
@@ -138,15 +173,14 @@
         const name = document.getElementById('name').value;
         const phone = document.getElementById('phone').value;
         const addr = document.getElementById('address').value;
-        if (!name || !phone || !addr) return tg.showAlert("Заполни данные!");
+        if (!name || !phone || !addr) return tg.showAlert("Заполни данные доставки!");
 
         const data = {
             items: cart.map(x => x.name).join(", "),
             total: cart.reduce((s, x) => s + x.price, 0),
             name: name,
             phone: phone,
-            address: addr,
-            comment: document.getElementById('comment').value
+            address: addr
         };
         tg.sendData(JSON.stringify(data));
         tg.close();
