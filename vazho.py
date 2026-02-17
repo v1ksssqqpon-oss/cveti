@@ -1,100 +1,57 @@
 import asyncio
 import json
-import sqlite3
-import logging
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
 
-# --- НАСТРОЙКИ ---
-TOKEN = '8517678651:AAGWCBa2BsWTS7M9HzTo7JWet6encABiKWE'
+# --- ТВОИ ДАННЫЕ (ПРОВЕРЬ ИХ) ---
+TOKEN = '8387192018:AAG_yJ0JEwX0v_lsF8pVkSA74ZpqaaHR5Jo'
 ADMIN_ID = 1655167987 
-APP_URL = "https://v1ksssqqpon-oss.github.io/cveti/"
+URL = "https://v1ksssqqpon-oss.github.io/cveti/"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# --- БАЗА ДАННЫХ ---
-def init_db():
-    conn = sqlite3.connect('shop.db')
-    cur = conn.cursor()
-    cur.execute('''CREATE TABLE IF NOT EXISTS orders 
-                   (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, items TEXT, total INTEGER, date TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-    cur.execute('''CREATE TABLE IF NOT EXISTS promos 
-                   (code TEXT PRIMARY KEY, discount INTEGER)''')
-    # Добавим тестовый промокод
-    cur.execute("INSERT OR IGNORE INTO promos VALUES ('FLOWERS10', 10)")
-    conn.commit()
-    conn.close()
-
-init_db()
-
-class AdminStates(StatesGroup):
-    waiting_for_promo = State()
-    waiting_for_broadcast = State()
-
-# --- КЛАВИАТУРЫ ---
+# Кнопки админа
 def get_admin_kb():
-    kb = [
-        [types.InlineKeyboardButton(text="📊 Статистика", callback_data="stats"),
-         types.InlineKeyboardButton(text="🎁 Промокоды", callback_data="manage_promos")],
-        [types.InlineKeyboardButton(text="📢 Рассылка", callback_data="broadcast")],
-        [types.InlineKeyboardButton(text="🛒 Заказы (Последние 5)", callback_data="recent_orders")]
-    ]
-    return types.InlineKeyboardMarkup(inline_keyboard=kb)
+    return types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text="📢 Сделать рассылку", callback_data="broadcast")],
+        [types.InlineKeyboardButton(text="🎁 Изменить промокод", callback_data="edit_promo")]
+    ])
 
-# --- ЛОГИКА ---
 @dp.message(Command("start"))
 async def start(message: types.Message):
-    kb = [[types.KeyboardButton(text="💐 ОТКРЫТЬ МАГАЗИН", web_app=types.WebAppInfo(url=APP_URL))]]
-    if message.from_user.id == ADMIN_ID:
-        await message.answer("👑 Добро пожаловать, Босс! Магазин готов.", 
-                             reply_markup=types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True))
-        await message.answer("⚙️ ПАНЕЛЬ УПРАВЛЕНИЯ:", reply_markup=get_admin_kb())
-    else:
-        await message.answer("🌸 Привет! Выбирай лучшие цветы в нашем приложении:", 
-                             reply_markup=types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True))
-
-@dp.message(Command("admin"))
-async def admin_panel(message: types.Message):
-    if message.from_user.id == ADMIN_ID:
-        await message.answer("⚙️ ПАНЕЛЬ УПРАВЛЕНИЯ:", reply_markup=get_admin_kb())
-
-@dp.callback_query(F.data == "stats")
-async def show_stats(callback: types.CallbackQuery):
-    conn = sqlite3.connect('shop.db')
-    cur = conn.cursor()
-    cur.execute("SELECT COUNT(*), SUM(total) FROM orders")
-    count, total = cur.fetchone()
-    cur.execute("SELECT COUNT(DISTINCT user_id) FROM orders")
-    users = cur.fetchone()[0]
-    conn.close()
+    kb = [[types.KeyboardButton(text="💐 ВЫБРАТЬ ЦВЕТЫ", web_app=types.WebAppInfo(url=URL))]]
+    await message.answer("🌸 **Flower Boutique** готов к работе!\nВыбирай букеты в меню ниже:", 
+                         reply_markup=types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True),
+                         parse_mode="Markdown")
     
-    text = (f"📈 **ОТЧЕТ ПО ПРОДАЖАМ**\n\n"
-            f"✅ Всего заказов: {count or 0}\n"
-            f"💰 Общая выручка: {total or 0}₽\n"
-            f"👥 Уникальных клиентов: {users or 0}")
-    await callback.message.edit_text(text, reply_markup=get_admin_kb())
+    # Если это ты, показываем админку
+    if message.from_user.id == ADMIN_ID:
+        await message.answer("👑 **Панель управления:**", reply_markup=get_admin_kb())
 
 @dp.message(F.web_app_data)
 async def handle_order(message: types.Message):
-    data = json.loads(message.web_app_data.data)
-    
-    # Сохраняем в базу
-    conn = sqlite3.connect('shop.db')
-    cur = conn.cursor()
-    cur.execute("INSERT INTO orders (user_id, items, total) VALUES (?, ?, ?)", 
-                (message.from_user.id, data['items'], data['total']))
-    conn.commit()
-    conn.close()
-
-    # Уведомление админу
-    await bot.send_message(ADMIN_ID, f"🔥 **НОВЫЙ ЗАКАЗ!**\n\n👤 {data['name']}\n📞 {data['phone']}\n💐 {data['items']}\n💰 Сумма: {data['total']}₽\n📍 {data['address']}")
-    await message.answer("✨ Заказ принят! Мы уже начали собирать ваш букет.")
+    try:
+        data = json.loads(message.web_app_data.data)
+        
+        # Текст для тебя (админа)
+        admin_text = (
+            f"🚀 **НОВЫЙ ЗАКАЗ!**\n\n"
+            f"👤 Клиент: {data['name']}\n"
+            f"📞 Телефон: `{data['phone']}`\n"
+            f"📍 Адрес: {data['address']}\n"
+            f"💐 Состав: {data['items']}\n"
+            f"💰 Сумма: **{data['total']}₽**"
+        )
+        
+        await bot.send_message(ADMIN_ID, admin_text, parse_mode="Markdown")
+        await message.answer("✨ **Заказ принят!**\nНаш флорист уже подбирает лучшие цветы для вас.")
+    except Exception as e:
+        await bot.send_message(ADMIN_ID, f"❌ Ошибка в данных: {e}")
 
 async def main():
+    print("🚀 БОТ ЗАПУЩЕН И ГОТОВ К ПРОДАЖАМ")
     await dp.start_polling(bot)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())

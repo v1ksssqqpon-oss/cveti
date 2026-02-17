@@ -5,52 +5,63 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --bg: #000; --card: #111; --accent: #ff4d6d; --gold: #d4af37; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: #fff; margin: 0; padding: 15px; }
-        h1 { text-align: center; color: var(--gold); letter-spacing: 3px; text-transform: uppercase; font-size: 20px; }
+        :root { --bg: #000; --card: #121212; --accent: #ff4d6d; --text: #fff; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; overflow-x: hidden; }
         
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        h1 { text-align: center; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; font-size: 20px; margin-bottom: 20px; }
+        
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
         .card { background: var(--card); border: 1px solid #222; border-radius: 20px; padding: 12px; text-align: center; }
-        .img-box { width: 80px; height: 80px; margin: 0 auto 10px; border-radius: 50%; overflow: hidden; border: 2px solid var(--accent); }
+        
+        /* КРУГЛЫЕ ФОТКИ С ТЕНЬЮ */
+        .img-box { width: 95px; height: 95px; margin: 0 auto 10px; border-radius: 50%; overflow: hidden; border: 2px solid var(--accent); box-shadow: 0 0 15px rgba(255, 77, 109, 0.2); }
         .img-box img { width: 100%; height: 100%; object-fit: cover; }
         
-        .price { color: var(--accent); font-weight: 800; font-size: 18px; }
-        .add-btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); width: 100%; padding: 10px; border-radius: 12px; margin-top: 8px; font-weight: bold; }
+        .card-title { font-size: 13px; font-weight: 600; margin-bottom: 5px; color: #eee; }
+        .price { color: var(--accent); font-weight: 800; font-size: 16px; }
         
-        .promo-box { margin-top: 20px; padding: 15px; background: #0a0a0a; border-radius: 15px; border: 1px dashed #333; }
-        input { width: 100%; padding: 12px; background: #000; border: 1px solid #222; border-radius: 10px; color: #fff; margin-bottom: 10px; box-sizing: border-box; }
-        
+        .add-btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); width: 100%; padding: 8px; border-radius: 12px; margin-top: 10px; font-weight: bold; }
+        .add-btn:active { background: var(--accent); color: #fff; }
+
+        /* ПРОМОКОД И ПОДДЕРЖКА */
+        .promo-input { width: 100%; padding: 12px; background: #0a0a0a; border: 1px solid #333; border-radius: 15px; color: #fff; text-align: center; margin-top: 10px; box-sizing: border-box; }
+        .support-btn { display: block; text-align: center; text-decoration: none; color: #666; font-size: 12px; padding: 12px; border: 1px dashed #333; border-radius: 16px; margin: 20px 0; }
+
         #form-page { display: none; }
+        .input-group input { width: 100%; padding: 15px; background: #0a0a0a; border: 1px solid #333; border-radius: 15px; color: #fff; margin-bottom: 12px; box-sizing: border-box; outline: none; }
+        .input-group input:focus { border-color: var(--accent); }
     </style>
 </head>
 <body>
 
 <div id="main-page">
-    <h1>Premium Flowers</h1>
+    <h1>Flower Boutique</h1>
     <div class="grid" id="catalog"></div>
-    <div class="promo-box">
-        <input type="text" id="promo-input" placeholder="Введите промокод">
-        <div style="font-size: 10px; color: #555; text-align: center;">Например: FLOWERS10</div>
-    </div>
+    
+    <input type="text" id="promo" class="promo-input" placeholder="Промокод (если есть)" oninput="recalc()">
+    
+    <a href="https://t.me/mishaswaga666" class="support-btn">💬 Связаться с продавцом (@mishaswaga666)</a>
 </div>
 
 <div id="form-page">
-    <h1>Оформление</h1>
-    <input type="text" id="name" placeholder="Ваше Имя">
-    <input type="tel" id="phone" placeholder="Телефон">
-    <input type="text" id="address" placeholder="Адрес доставки">
+    <h1>Оформление заказа</h1>
+    <div class="input-group">
+        <input type="text" id="name" placeholder="Ваше Имя">
+        <input type="tel" id="phone" placeholder="Телефон (+7...)">
+        <input type="text" id="address" placeholder="Адрес доставки">
+    </div>
 </div>
 
 <script>
     let tg = window.Telegram.WebApp;
+    tg.expand();
     let cart = [];
-    let discount = 0;
 
     const products = [
-        {id: 1, name: "Красные Розы", price: 4500, img: "1.jpg"},
-        {id: 2, name: "Белые Пионы", price: 6200, img: "2.jpg"},
-        {id: 3, name: "Весенний Микс", price: 3800, img: "3.jpg"},
-        {id: 4, name: "Тюльпаны", price: 2900, img: "4.jpg"}
+        {id: 1, name: "Элегия", price: 4200, img: "1.jpg"},
+        {id: 2, name: "Романтика", price: 3500, img: "2.jpg"},
+        {id: 3, name: "Премиум", price: 7800, img: "3.jpg"},
+        {id: 4, name: "Нежность", price: 2900, img: "4.jpg"}
     ];
 
     const catalog = document.getElementById('catalog');
@@ -58,44 +69,63 @@
         catalog.innerHTML += `
             <div class="card">
                 <div class="img-box"><img src="${p.img}"></div>
-                <div style="font-size: 12px; margin-bottom: 5px;">${p.name}</div>
+                <div class="card-title">${p.name}</div>
                 <div class="price">${p.price}₽</div>
                 <button class="add-btn" onclick="addToCart(${p.id})">В КОРЗИНУ</button>
             </div>`;
     });
 
     function addToCart(id) {
-        const p = products.find(x => x.id === id);
-        cart.push(p);
-        tg.HapticFeedback.impactOccurred('medium'); // Вибрация!
-        updateMainButton();
+        cart.push(products.find(x => x.id === id));
+        tg.HapticFeedback.impactOccurred('medium');
+        recalc();
     }
 
-    function updateMainButton() {
+    function recalc() {
         let total = cart.reduce((s, x) => s + x.price, 0);
-        // Проверка промокода (упрощенная для примера)
-        if(document.getElementById('promo-input').value === 'FLOWERS10') {
+        const promo = document.getElementById('promo').value.toUpperCase();
+        
+        if (promo === 'FLOWERS10') {
             total = Math.floor(total * 0.9);
-            discount = 10;
         }
-        tg.MainButton.setText(`КУПИТЬ: ${total}₽`).show();
+
+        if (total > 0) {
+            tg.MainButton.setText(`ОФОРМИТЬ ЗАКАЗ: ${total}₽`).show();
+        }
     }
 
     tg.MainButton.onClick(() => {
         if (document.getElementById('main-page').style.display !== 'none') {
             document.getElementById('main-page').style.display = 'none';
             document.getElementById('form-page').style.display = 'block';
-            tg.MainButton.setText('ПОДТВЕРДИТЬ');
+            tg.MainButton.setText('ПОДТВЕРДИТЬ И ОТПРАВИТЬ');
+            tg.BackButton.show();
         } else {
-            const data = {
+            const name = document.getElementById('name').value;
+            const phone = document.getElementById('phone').value;
+            const addr = document.getElementById('address').value;
+            
+            if(!name || !phone || !addr) return tg.showAlert("Заполни все поля!");
+
+            let total = cart.reduce((s, x) => s + x.price, 0);
+            if (document.getElementById('promo').value.toUpperCase() === 'FLOWERS10') total *= 0.9;
+
+            const result = {
                 items: cart.map(x => x.name).join(", "),
-                total: cart.reduce((s, x) => s + x.price, 0) * (discount ? 0.9 : 1),
-                name: document.getElementById('name').value,
-                phone: document.getElementById('phone').value,
-                address: document.getElementById('address').value
+                total: total,
+                name: name,
+                phone: phone,
+                address: addr
             };
-            tg.sendData(JSON.stringify(data));
+            tg.sendData(JSON.stringify(result));
+            tg.close();
         }
+    });
+
+    tg.BackButton.onClick(() => {
+        document.getElementById('main-page').style.display = 'block';
+        document.getElementById('form-page').style.display = 'none';
+        tg.BackButton.hide();
     });
 </script>
 </body>
