@@ -7,7 +7,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
 
-TOKEN = '8380687429:AAFJh0XExc0kBsx2dspQNlmZCUBFO1IFSX0'
+TOKEN = '8517678651:AAGWCBa2BsWTS7M9HzTo7JWet6encABiKWE'
 ADMIN_ID = 1655167987 
 URL = "https://v1ksssqqpon-oss.github.io/cveti/"
 
