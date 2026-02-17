@@ -11,7 +11,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 # --- НАСТРОЙКИ ---
 TOKEN = '8517678651:AAGWCBa2BsWTS7M9HzTo7JWet6encABiKWE'
 ADMIN_ID = 1655167987 
-URL = "https://mishaswaga.github.io/cvetibot/"
+URL = "https://v1ksssqqpon-oss.github.io/cveti/"
 REQUISITES = "💳 Карта Сбер: 0000 0000 0000 0000 (Михаил С.)"
 LAT, LON = 55.7558, 37.6173 # Твои координаты
 
