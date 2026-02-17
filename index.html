@@ -9,27 +9,22 @@
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
         h1 { text-align: center; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; font-size: 20px; }
         
-        /* Каталог */
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-        .card { background: var(--card); border: 1px solid #222; border-radius: 20px; padding: 12px; text-align: center; transition: 0.3s; }
+        .card { background: var(--card); border: 1px solid #222; border-radius: 20px; padding: 12px; text-align: center; }
         .img-box { width: 85px; height: 85px; margin: 0 auto 10px; border-radius: 50%; overflow: hidden; border: 2px solid var(--accent); box-shadow: 0 0 15px rgba(255, 77, 109, 0.3); }
         .img-box img { width: 100%; height: 100%; object-fit: cover; }
         .price { color: var(--accent); font-weight: 800; font-size: 16px; margin-bottom: 8px; }
 
         /* Умные кнопки */
-        .add-btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); width: 100%; padding: 8px; border-radius: 12px; font-weight: bold; font-size: 11px; cursor: pointer; }
+        .add-initial-btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); width: 100%; padding: 8px; border-radius: 12px; font-weight: bold; font-size: 11px; cursor: pointer; }
         .stepper { display: flex; align-items: center; justify-content: center; gap: 12px; background: #000; border-radius: 12px; padding: 4px; border: 1px solid #333; }
         .step-btn { background: var(--accent); border: none; color: #fff; width: 28px; height: 28px; border-radius: 8px; font-weight: bold; font-size: 18px; }
         .count { font-weight: bold; font-size: 15px; min-width: 15px; }
 
-        /* Связь */
         .support-btn { display: block; text-align: center; text-decoration: none; color: #666; font-size: 13px; margin: 25px 0; padding: 15px; border: 1px dashed #333; border-radius: 15px; }
 
-        /* Форма */
-        #form-page { display: none; animation: fadeIn 0.3s; }
+        #form-page { display: none; }
         input { width: 100%; padding: 14px; background: #0a0a0a; border: 1px solid #333; border-radius: 12px; color: #fff; margin-bottom: 12px; box-sizing: border-box; outline: none; }
-        input:focus { border-color: var(--accent); }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -41,12 +36,11 @@
 </div>
 
 <div id="form-page">
-    <h1>Оформление заказа</h1>
+    <h1 style="font-size: 18px;">Оформление заказа</h1>
     <input type="text" id="name" placeholder="Ваше Имя (Обязательно)">
     <input type="tel" id="phone" placeholder="Телефон (Обязательно)">
     <input type="text" id="address" placeholder="Адрес доставки (Обязательно)">
-    <input type="text" id="time" placeholder="Желаемое время доставки">
-    <input type="text" id="promo" placeholder="Промокод (если есть)" style="text-align: center;">
+    <input type="text" id="time" placeholder="Удобное время">
 </div>
 
 <script>
@@ -55,4 +49,74 @@
 
     const products = [
         {id: 1, name: "Элегия", price: 4200, img: "1.jpg", qty: 0},
-        {id: 2, name: "Романтика", price
+        {id: 2, name: "Романтика", price: 3500, img: "2.jpg", qty: 0},
+        {id: 3, name: "Премиум", price: 7800, img: "3.jpg", qty: 0},
+        {id: 4, name: "Нежность", price: 2900, img: "4.jpg", qty: 0}
+    ];
+
+    function render() {
+        const cat = document.getElementById('catalog');
+        cat.innerHTML = '';
+        products.forEach(p => {
+            let controls = p.qty === 0 
+                ? `<button class="add-initial-btn" onclick="changeQty(${p.id}, 1)">В КОРЗИНУ</button>`
+                : `<div class="stepper">
+                    <button class="step-btn" onclick="changeQty(${p.id}, -1)">-</button>
+                    <span class="count">${p.qty}</span>
+                    <button class="step-btn" onclick="changeQty(${p.id}, 1)">+</button>
+                   </div>`;
+
+            cat.innerHTML += `
+                <div class="card">
+                    <div class="img-box"><img src="${p.img}"></div>
+                    <div style="font-size:12px; margin-bottom:5px;">${p.name}</div>
+                    <div class="price">${p.price}₽</div>
+                    <div>${controls}</div>
+                </div>`;
+        });
+        updateMainButton();
+    }
+
+    function changeQty(id, delta) {
+        const p = products.find(x => x.id === id);
+        p.qty = Math.max(0, p.qty + delta);
+        tg.HapticFeedback.impactOccurred('light');
+        render();
+    }
+
+    function updateMainButton() {
+        let total = products.reduce((s, p) => s + (p.price * p.qty), 0);
+        if (total > 0) {
+            tg.MainButton.setText(`ОФОРМИТЬ: ${total}₽`).show();
+        } else {
+            tg.MainButton.hide();
+        }
+    }
+
+    tg.MainButton.onClick(() => {
+        if (document.getElementById('main-page').style.display !== 'none') {
+            document.getElementById('main-page').style.display = 'none';
+            document.getElementById('form-page').style.display = 'block';
+            tg.BackButton.show();
+        } else {
+            const n=document.getElementById('name'), p=document.getElementById('phone'), a=document.getElementById('address');
+            if(!n.value || !p.value || !a.value) return tg.showAlert("Заполните Имя, Телефон и Адрес!");
+            
+            const items = products.filter(x => x.qty > 0).map(x => `${x.name} (x${x.qty})`).join(", ");
+            const total = products.reduce((s, p) => s + (p.price * p.qty), 0);
+            
+            tg.sendData(JSON.stringify({items, total, name: n.value, phone: p.value, address: a.value, time: document.getElementById('time').value}));
+            tg.close();
+        }
+    });
+
+    tg.BackButton.onClick(() => {
+        document.getElementById('main-page').style.display = 'block';
+        document.getElementById('form-page').style.display = 'none';
+        tg.BackButton.hide();
+    });
+
+    render();
+</script>
+</body>
+</html>
