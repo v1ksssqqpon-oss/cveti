@@ -1,70 +1,84 @@
 import asyncio
 import json
+import random
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 
-# --- ПРОВЕРЬ ЭТИ ДАННЫЕ ---
+# --- НАСТРОЙКИ ---
 TOKEN = '8517678651:AAGWCBa2BsWTS7M9HzTo7JWet6encABiKWE'
 ADMIN_ID = 1655167987 
-URL = "https://v1ksssqqpon-oss.github.io/cveti/"
+URL = "https://mishaswaga.github.io/cvetibot/"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# Статистика в памяти (безопасно для Railway)
-stats = {"orders": 0, "revenue": 0}
+# Хранилище в памяти
+orders_db = {} 
+settings = {
+    "requisites": "Карта Сбер: 0000 0000 0000 0000 (Михаил С.)",
+    "promos": {"FLOWERS10": 10, "BRO": 50}
+}
+
+# Клавиатура Админа
+def admin_kb():
+    return types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text="💳 Изменить реквизиты", callback_data="edit_req")],
+        [types.InlineKeyboardButton(text="🎁 Список промокодов", callback_data="list_promos")]
+    ])
 
 @dp.message(Command("start"))
 async def start(message: types.Message):
-    # ЭТО ВИДЯТ ВСЕ ПОЛЬЗОВАТЕЛИ
-    kb = [[types.KeyboardButton(text="💐 ОТКРЫТЬ МАГАЗИН", web_app=types.WebAppInfo(url=URL))]]
-    await message.answer(
-        "🌸 **Добро пожаловать в Flower Boutique!**\n\nНажмите на кнопку ниже, чтобы выбрать букет. По всем вопросам — жмите кнопку связи внутри магазина!", 
-        reply_markup=types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True),
-        parse_mode="Markdown"
-    )
-    
-    # А ЭТО ДОПОЛНИТЕЛЬНО ВИДИШЬ ТОЛЬКО ТЫ
+    kb = [[types.KeyboardButton(text="💐 МАГАЗИН ЦВЕТОВ", web_app=types.WebAppInfo(url=URL))]]
+    await message.answer("🌸 Магазин готов к работе!", 
+                         reply_markup=types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True))
     if message.from_user.id == ADMIN_ID:
-        admin_kb = types.InlineKeyboardMarkup(inline_keyboard=[
-            [types.InlineKeyboardButton(text="📊 Показать выручку", callback_data="get_stats")]
-        ])
-        await message.answer("⚙️ **Панель управления:**", reply_markup=admin_kb)
+        await message.answer("🛠 ПАНЕЛЬ УПРАВЛЕНИЯ:", reply_markup=admin_kb())
 
-@dp.callback_query(F.data == "get_stats")
-async def show_stats(call: types.CallbackQuery):
-    await call.message.answer(f"📈 **ОТЧЕТ:**\nВсего заказов: {stats['orders']}\nВыручка: {stats['revenue']}₽")
+# Прием заказа из Mini App
+@dp.message(F.web_app_data)
+async def handle_order(message: types.Message):
+    data = json.loads(message.web_app_data.data)
+    order_id = random.randint(1000, 9999)
+    orders_db[order_id] = {"user_id": message.from_user.id, "data": data}
+
+    # Кнопки для тебя
+    kb = types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text="✅ ОДОБРИТЬ", callback_data=f"order_yes_{order_id}"),
+         types.InlineKeyboardButton(text="❌ ОТКЛОНИТЬ", callback_data=f"order_no_{order_id}")]
+    ])
+
+    admin_text = (f"📦 **ЗАКАЗ №{order_id}**\n\n👤 Имя: {data['name']}\n📞 `{data['phone']}`\n📍 {data['address']}\n"
+                  f"💐 {data['items']}\n💰 Итого: **{data['total']}₽**")
+    
+    await bot.send_message(ADMIN_ID, admin_text, reply_markup=kb, parse_mode="Markdown")
+    await message.answer("⏳ Заказ отправлен на проверку флористу. Ожидайте подтверждения!")
+
+# Обработка Одобрения/Отклонения
+@dp.callback_query(F.data.startswith("order_"))
+async def process_order(call: types.CallbackQuery):
+    action, status, o_id = call.data.split("_")
+    order = orders_db.get(int(o_id))
+    if not order: return await call.answer("Заказ устарел")
+
+    if status == "yes":
+        await bot.send_message(order["user_id"], 
+            f"✅ **ВАШ ЗАКАЗ ОДОБРЕН!**\n\nДля оплаты переведите сумму на реквизиты:\n`{settings['requisites']}`\n\nПосле оплаты пришлите скриншот чека сюда.")
+        await call.message.edit_text(call.message.text + "\n\n🟢 ОДОБРЕНО. Реквизиты отправлены.")
+    else:
+        await bot.send_message(order["user_id"], "❌ К сожалению, мы не можем принять ваш заказ сейчас.")
+        await call.message.edit_text(call.message.text + "\n\n🔴 ОТКЛОНЕНО.")
     await call.answer()
 
-@dp.message(F.web_app_data)
-async def handle_data(message: types.Message):
-    try:
-        data = json.loads(message.web_app_data.data)
-        
-        # Обновляем статы
-        stats["orders"] += 1
-        stats["revenue"] += int(data['total'])
-        
-        # Сообщение ТЕБЕ (Админу)
-        admin_msg = (
-            f"🔥 **НОВЫЙ ЗАКАЗ!**\n\n"
-            f"👤 Клиент: {data['name']}\n"
-            f"📞 Телефон: `{data['phone']}`\n"
-            f"📍 Адрес: {data['address']}\n"
-            f"💐 Букеты: {data['items']}\n"
-            f"💰 Сумма: **{data['total']}₽**"
-        )
-        
-        await bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
-        
-        # Сообщение КЛИЕНТУ
-        await message.answer("✅ **Заказ принят!**\nМы уже начали собирать ваш букет и скоро свяжемся с вами.")
-        
-    except Exception as e:
-        await bot.send_message(ADMIN_ID, f"❌ Ошибка: {e}")
+# Просмотр промокодов
+@dp.callback_query(F.data == "list_promos")
+async def list_promos(call: types.CallbackQuery):
+    text = "🎁 **ДЕЙСТВУЮЩИЕ ПРОМОКОДЫ:**\n\n"
+    for code, disc in settings["promos"].items():
+        text += f"• `{code}` — {disc}%\n"
+    await call.message.answer(text, parse_mode="Markdown")
+    await call.answer()
 
 async def main():
-    print("🚀 БОТ ЗАПУЩЕН")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
