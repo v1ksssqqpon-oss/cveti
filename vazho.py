@@ -14,7 +14,7 @@ dp = Dispatcher()
 async def start(message: types.Message):
     # Кнопка открытия твоего Mini App (ссылка на GitHub Pages)
     kb = [[types.KeyboardButton(text="🌸 ОТКРЫТЬ МАГАЗИН", 
-                                web_app=types.WebAppInfo(url="https://ТВОЙ_НИК.github.io/cvetibot/"))]]
+                                web_app=types.WebAppInfo(url="https://v1ksssqqpon-oss.github.io/cveti/"))]]
     await message.answer("Добро пожаловать в Flower Boutique! 💐",
                          reply_markup=types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True))
 
