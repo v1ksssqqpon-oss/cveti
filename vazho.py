@@ -9,7 +9,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 TOKEN = '8380687429:AAFJh0XExc0kBsx2dspQNlmZCUBFO1IFSX0'
 ADMIN_ID = 1655167987 
-URL = "https://mishaswaga.github.io/cvetibot/"
+URL = "https://v1ksssqqpon-oss.github.io/cveti/"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
