@@ -9,22 +9,29 @@
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
         h1 { text-align: center; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; font-size: 20px; }
         
+        /* Сетка товаров */
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
         .card { background: var(--card); border: 1px solid #222; border-radius: 20px; padding: 12px; text-align: center; }
         .img-box { width: 85px; height: 85px; margin: 0 auto 10px; border-radius: 50%; overflow: hidden; border: 2px solid var(--accent); box-shadow: 0 0 15px rgba(255, 77, 109, 0.3); }
         .img-box img { width: 100%; height: 100%; object-fit: cover; }
         .price { color: var(--accent); font-weight: 800; font-size: 16px; margin-bottom: 8px; }
 
-        /* Умные кнопки */
-        .add-initial-btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); width: 100%; padding: 8px; border-radius: 12px; font-weight: bold; font-size: 11px; cursor: pointer; }
+        /* Умные кнопки количества */
+        .add-initial-btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); width: 100%; padding: 8px; border-radius: 12px; font-weight: bold; font-size: 11px; }
         .stepper { display: flex; align-items: center; justify-content: center; gap: 12px; background: #000; border-radius: 12px; padding: 4px; border: 1px solid #333; }
-        .step-btn { background: var(--accent); border: none; color: #fff; width: 28px; height: 28px; border-radius: 8px; font-weight: bold; font-size: 18px; }
+        .step-btn { background: var(--accent); border: none; color: #fff; width: 28px; height: 28px; border-radius: 8px; font-weight: bold; font-size: 18px; line-height: 1; }
         .count { font-weight: bold; font-size: 15px; min-width: 15px; }
 
-        .support-btn { display: block; text-align: center; text-decoration: none; color: #666; font-size: 13px; margin: 25px 0; padding: 15px; border: 1px dashed #333; border-radius: 15px; }
+        /* Кнопки способа получения */
+        .method-box { display: flex; gap: 10px; margin-bottom: 15px; }
+        .method-btn { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #333; background: #0a0a0a; color: #fff; font-size: 11px; font-weight: bold; }
+        .method-btn.active { border-color: var(--accent); background: rgba(255, 77, 109, 0.1); color: var(--accent); }
 
-        #form-page { display: none; }
+        .support-btn { display: block; text-align: center; text-decoration: none; color: #555; font-size: 12px; margin-top: 25px; padding: 10px; border: 1px dashed #333; border-radius: 15px; }
+
+        #form-page { display: none; animation: fadeIn 0.3s; }
         input { width: 100%; padding: 14px; background: #0a0a0a; border: 1px solid #333; border-radius: 12px; color: #fff; margin-bottom: 12px; box-sizing: border-box; outline: none; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -37,16 +44,21 @@
 
 <div id="form-page">
     <h1 style="font-size: 18px;">Оформление заказа</h1>
+    <div class="method-box">
+        <button class="method-btn active" id="btn-delivery" onclick="setMethod('delivery')">🚚 ДОСТАВКА</button>
+        <button class="method-btn" id="btn-pickup" onclick="setMethod('pickup')">🚶 САМОВЫВОЗ (-10%)</button>
+    </div>
     <input type="text" id="name" placeholder="Ваше Имя (Обязательно)">
     <input type="tel" id="phone" placeholder="Телефон (Обязательно)">
     <input type="text" id="address" placeholder="Адрес доставки (Обязательно)">
-    <input type="text" id="time" placeholder="Удобное время">
+    <input type="text" id="time" placeholder="Желаемое время доставки">
 </div>
 
 <script>
     let tg = window.Telegram.WebApp;
     tg.expand();
 
+    let method = 'delivery';
     const products = [
         {id: 1, name: "Элегия", price: 4200, img: "1.jpg", qty: 0},
         {id: 2, name: "Романтика", price: 3500, img: "2.jpg", qty: 0},
@@ -65,16 +77,9 @@
                     <span class="count">${p.qty}</span>
                     <button class="step-btn" onclick="changeQty(${p.id}, 1)">+</button>
                    </div>`;
-
-            cat.innerHTML += `
-                <div class="card">
-                    <div class="img-box"><img src="${p.img}"></div>
-                    <div style="font-size:12px; margin-bottom:5px;">${p.name}</div>
-                    <div class="price">${p.price}₽</div>
-                    <div>${controls}</div>
-                </div>`;
+            cat.innerHTML += `<div class="card"><div class="img-box"><img src="${p.img}"></div><div style="font-size:12px; margin-bottom:5px;">${p.name}</div><div class="price">${p.price}₽</div><div>${controls}</div></div>`;
         });
-        updateMainButton();
+        updateBtn();
     }
 
     function changeQty(id, delta) {
@@ -84,8 +89,17 @@
         render();
     }
 
-    function updateMainButton() {
+    function setMethod(m) {
+        method = m;
+        document.getElementById('btn-delivery').classList.toggle('active', m === 'delivery');
+        document.getElementById('btn-pickup').classList.toggle('active', m === 'pickup');
+        document.getElementById('address').style.display = m === 'pickup' ? 'none' : 'block';
+        updateBtn();
+    }
+
+    function updateBtn() {
         let total = products.reduce((s, p) => s + (p.price * p.qty), 0);
+        if (method === 'pickup') total = Math.floor(total * 0.9);
         if (total > 0) {
             tg.MainButton.setText(`ОФОРМИТЬ: ${total}₽`).show();
         } else {
@@ -100,12 +114,16 @@
             tg.BackButton.show();
         } else {
             const n=document.getElementById('name'), p=document.getElementById('phone'), a=document.getElementById('address');
-            if(!n.value || !p.value || !a.value) return tg.showAlert("Заполните Имя, Телефон и Адрес!");
+            if(!n.value || !p.value || (method === 'delivery' && !a.value)) return tg.showAlert("Заполните все данные!");
             
-            const items = products.filter(x => x.qty > 0).map(x => `${x.name} (x${x.qty})`).join(", ");
             const total = products.reduce((s, p) => s + (p.price * p.qty), 0);
-            
-            tg.sendData(JSON.stringify({items, total, name: n.value, phone: p.value, address: a.value, time: document.getElementById('time').value}));
+            const finalTotal = method === 'pickup' ? Math.floor(total * 0.9) : total;
+
+            tg.sendData(JSON.stringify({
+                method: method === 'delivery' ? '🚚 ДОСТАВКА' : '🚶 САМОВЫВОЗ',
+                items: products.filter(x => x.qty > 0).map(x => `${x.name} (x${x.qty})`).join(", "),
+                total: finalTotal, name: n.value, phone: p.value, address: a.value || "Самовывоз", time: document.getElementById('time').value
+            }));
             tg.close();
         }
     });
