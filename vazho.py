@@ -7,7 +7,7 @@ from aiogram.filters import Command
 # --- НАСТРОЙКИ ---
 TOKEN = '8517678651:AAGWCBa2BsWTS7M9HzTo7JWet6encABiKWE'
 ADMIN_ID = 1655167987 
-URL = "https://mishaswaga.github.io/cvetibot/"
+URL = "https://v1ksssqqpon-oss.github.io/cveti/"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
