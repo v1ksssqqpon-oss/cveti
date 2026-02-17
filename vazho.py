@@ -2,7 +2,7 @@ import asyncio
 import json
 import random
 from aiogram import Bot, Dispatcher, types, F
-from aiogram.filters import Command, StateFilter
+from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -14,91 +14,82 @@ URL = "https://v1ksssqqpon-oss.github.io/cveti/"
 bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
-class AdminStates(StatesGroup):
+class States(StatesGroup):
     waiting_for_reqs = State()
-    waiting_for_comment = State() # Для комментов к заказу
+    waiting_for_comment = State()
 
-settings = {"requisites": "Карта Сбер: 0000 0000 0000 0000 (Михаил С.)"}
-orders_db = {}
+db = {"reqs": "Карта Сбер: 0000 0000 0000 0000 (Михаил С.)", "orders": {}}
 
 @dp.message(Command("start"))
 async def start(message: types.Message):
     kb = [[types.KeyboardButton(text="💐 МАГАЗИН ЦВЕТОВ", web_app=types.WebAppInfo(url=URL))]]
-    await message.answer("🌸 Магазин открыт!", reply_markup=types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True))
+    await message.answer("🌸 Бот запущен!", reply_markup=types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True))
     if message.from_user.id == ADMIN_ID:
-        kb_admin = types.InlineKeyboardMarkup(inline_keyboard=[[types.InlineKeyboardButton(text="💳 Изменить реквизиты", callback_data="edit_req")]])
-        await message.answer("🛠 АДМИН-ПАНЕЛЬ:", reply_markup=kb_admin)
+        kb_adm = types.InlineKeyboardMarkup(inline_keyboard=[[types.InlineKeyboardButton(text="💳 Изменить реквизиты", callback_data="edit_req")]])
+        await message.answer("🛠 АДМИНКА:", reply_markup=kb_adm)
 
-# Прием заказа
 @dp.message(F.web_app_data)
 async def handle_order(message: types.Message):
     data = json.loads(message.web_app_data.data)
     o_id = random.randint(1000, 9999)
-    orders_db[o_id] = {"user_id": message.from_user.id, "data": data}
-
+    db["orders"][o_id] = {"user_id": message.from_user.id, "data": data}
+    
     kb = types.InlineKeyboardMarkup(inline_keyboard=[
-        [types.InlineKeyboardButton(text="✅ ОДОБРИТЬ", callback_data=f"ans_yes_{o_id}"),
-         types.InlineKeyboardButton(text="❌ ОТКЛОНИТЬ", callback_data=f"ans_no_{o_id}")]
+        [types.InlineKeyboardButton(text="✅ ОДОБРИТЬ", callback_data=f"ord_yes_{o_id}"),
+         types.InlineKeyboardButton(text="❌ ОТКЛОНИТЬ", callback_data=f"ord_no_{o_id}")]
     ])
     
-    admin_text = f"🔥 **НОВЫЙ ЗАКАЗ №{o_id}**\n\n👤 Имя: {data['name']}\n📞 `{data['phone']}`\n📍 {data['address']}\n💐 {data['items']}\n💰 Сумма: {data['total']}₽"
-    await bot.send_message(ADMIN_ID, admin_text, reply_markup=kb, parse_mode="Markdown")
-    await message.answer("⏳ Заказ на проверке. Ожидайте сообщения!")
+    text = f"🔥 **НОВЫЙ ЗАКАЗ №{o_id}**\n\n👤 Имя: {data['name']}\n📞 `{data['phone']}`\n📍 {data['address']}\n💐 {data['items']}\n💰 Сумма: {data['total']}₽"
+    await bot.send_message(ADMIN_ID, text, reply_markup=kb, parse_mode="Markdown")
+    await message.answer("⏳ Заказ на проверке. Ждите ответа!")
 
-# Клик по кнопке (Одобрить/Отклонить)
-@dp.callback_query(F.data.startswith("ans_"))
+@dp.callback_query(F.data.startswith("ord_"))
 async def ask_comment(call: types.CallbackQuery, state: FSMContext):
     _, status, o_id = call.data.split("_")
-    await state.update_data(current_order=o_id, current_status=status)
-    
-    kb = types.InlineKeyboardMarkup(inline_keyboard=[[types.InlineKeyboardButton(text="⏩ Пропустить", callback_data="skip_comment")]])
-    action = "ОДОБРЕНИЮ" if status == "yes" else "ОТКЛОНЕНИЮ"
-    await call.message.answer(f"📝 Введите комментарий к **{action}** заказа (или нажмите пропустить):", reply_markup=kb)
-    await state.set_state(AdminStates.waiting_for_comment)
+    await state.update_data(o_id=o_id, status=status)
+    kb = types.InlineKeyboardMarkup(inline_keyboard=[[types.InlineKeyboardButton(text="⏩ Без комментария", callback_data="skip_com")]])
+    await call.message.answer(f"📝 Введите комментарий к ответу:", reply_markup=kb)
+    await state.set_state(States.waiting_for_comment)
     await call.answer()
 
-# Сохранение комментария и отправка клиенту
-@dp.message(AdminStates.waiting_for_comment)
-async def send_final_res(message: types.Message, state: FSMContext):
-    data_state = await state.get_data()
-    order = orders_db.get(int(data_state['current_order']))
-    comment = f"\n\n💬 Комментарий: _{message.text}_" if message.text else ""
-    
-    await finish_order_process(order, data_state['current_status'], comment)
-    await message.answer("✅ Ответ отправлен клиенту!")
+@dp.message(States.waiting_for_comment)
+async def send_res(message: types.Message, state: FSMContext):
+    s = await state.get_data()
+    order = db["orders"].get(int(s['o_id']))
+    com = f"\n\n💬 Коммент: _{message.text}_"
+    await finish_ord(order, s['status'], com)
+    await message.answer("✅ Отправлено!")
     await state.clear()
 
-@dp.callback_query(F.data == "skip_comment")
-async def skip_comment(call: types.CallbackQuery, state: FSMContext):
-    data_state = await state.get_data()
-    order = orders_db.get(int(data_state['current_order']))
-    await finish_order_process(order, data_state['current_status'], "")
-    await call.message.answer("✅ Отправлено без комментария.")
+@dp.callback_query(F.data == "skip_com")
+async def skip_com(call: types.CallbackQuery, state: FSMContext):
+    s = await state.get_data()
+    order = db["orders"].get(int(s['o_id']))
+    await finish_ord(order, s['status'], "")
+    await call.message.answer("✅ Отправлено без коммента.")
     await state.clear()
     await call.answer()
 
-async def finish_order_process(order, status, comment):
+async def finish_ord(order, status, com):
     if status == "yes":
-        msg = f"✅ **ВАШ ЗАКАЗ ОДОБРЕН!**{comment}\n\nРеквизиты:\n`{settings['requisites']}`\n\nЖдем скриншот чека!"
+        txt = f"✅ **ЗАКАЗ ОДОБРЕН!**{com}\n\nРеквизиты:\n`{db['reqs']}`\n\nЖдем фото чека!"
     else:
-        msg = f"❌ **ЗАКАЗ ОТКЛОНЕН**{comment}\n\nСвяжитесь с нами для уточнения."
-    await bot.send_message(order["user_id"], msg, parse_mode="Markdown")
+        txt = f"❌ **ЗАКАЗ ОТКЛОНЕН**{com}"
+    await bot.send_message(order["user_id"], txt, parse_mode="Markdown")
 
-# Пересылка чека
 @dp.message(F.photo)
-async def forward_receipt(message: types.Message):
-    await bot.send_photo(ADMIN_ID, message.photo[-1].file_id, caption="🧾 **ПРИШЕЛ ЧЕК!**", parse_mode="Markdown")
-    await message.answer("🙏 Спасибо! Чек получен.")
+async def get_photo(message: types.Message):
+    await bot.send_photo(ADMIN_ID, message.photo[-1].file_id, caption="🧾 **ПРИШЕЛ ЧЕК!**")
+    await message.answer("🙏 Чек получен, проверяем!")
 
-# Смена реквизитов
 @dp.callback_query(F.data == "edit_req")
 async def edit_req(call: types.CallbackQuery, state: FSMContext):
     await call.message.answer("📝 Введите новые реквизиты:")
-    await state.set_state(AdminStates.waiting_for_reqs)
+    await state.set_state(States.waiting_for_reqs)
 
-@dp.message(AdminStates.waiting_for_reqs)
+@dp.message(States.waiting_for_reqs)
 async def save_reqs(message: types.Message, state: FSMContext):
-    settings["requisites"] = message.text
+    db["reqs"] = message.text
     await message.answer(f"✅ Сохранено: {message.text}")
     await state.clear()
 
