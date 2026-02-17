@@ -5,175 +5,97 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root {
-            --bg: #000000;
-            --card-bg: #121212;
-            --accent: #ff4d6d;
-            --text-main: #ffffff;
-            --text-sec: #888888;
-        }
-
-        body {
-            font-family: -apple-system, system-ui, sans-serif;
-            background-color: var(--bg);
-            color: var(--text-main);
-            margin: 0; padding: 0;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .container { padding: 15px; animation: fadeIn 0.5s ease; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        h1 { 
-            font-size: 24px; font-weight: 800; text-align: center; 
-            letter-spacing: 2px; margin-bottom: 20px; 
-            color: var(--accent); text-transform: uppercase;
-        }
-
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        :root { --bg: #000; --card: #111; --accent: #ff4d6d; --gold: #d4af37; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: #fff; margin: 0; padding: 15px; }
+        h1 { text-align: center; color: var(--gold); letter-spacing: 3px; text-transform: uppercase; font-size: 20px; }
         
-        .card {
-            background: var(--card-bg);
-            border: 1px solid #222;
-            border-radius: 20px;
-            padding: 12px;
-            text-align: center;
-        }
-
-        .img-container {
-            width: 100px; height: 100px;
-            margin: 0 auto 10px;
-            border-radius: 50%;
-            overflow: hidden;
-            border: 2px solid var(--accent);
-            background: #222;
-        }
-
-        .img-container img { width: 100%; height: 100%; object-fit: cover; }
-
-        .card-title { font-size: 13px; font-weight: 600; margin-bottom: 5px; height: 32px; overflow: hidden; color: #ddd; }
-        .card-price { font-size: 16px; font-weight: 800; color: var(--accent); }
-
-        .add-btn {
-            background: transparent; border: 1px solid var(--accent);
-            color: var(--accent); width: 100%; padding: 8px;
-            border-radius: 12px; font-weight: 700; margin-top: 10px;
-        }
-        .add-btn:active { background: var(--accent); color: white; }
-
-        /* КНОПКА СВЯЗИ КАК В САЛОНАХ */
-        .support-btn {
-            display: block;
-            text-align: center;
-            text-decoration: none;
-            color: var(--text-sec);
-            font-size: 14px;
-            margin: 20px auto 40px;
-            padding: 12px;
-            border: 1px dashed #333;
-            border-radius: 16px;
-        }
-
-        #form-page { display: none; padding: 20px; }
-        .input-group { margin-bottom: 15px; }
-        .input-group label { display: block; font-size: 10px; color: var(--text-sec); text-transform: uppercase; margin-bottom: 5px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .card { background: var(--card); border: 1px solid #222; border-radius: 20px; padding: 12px; text-align: center; }
+        .img-box { width: 80px; height: 80px; margin: 0 auto 10px; border-radius: 50%; overflow: hidden; border: 2px solid var(--accent); }
+        .img-box img { width: 100%; height: 100%; object-fit: cover; }
         
-        input {
-            width: 100%; padding: 14px;
-            background: #0a0a0a; border: 1px solid #333;
-            border-radius: 12px; color: white; font-size: 16px;
-            box-sizing: border-box; outline: none;
-        }
-        input:focus { border-color: var(--accent); }
+        .price { color: var(--accent); font-weight: 800; font-size: 18px; }
+        .add-btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); width: 100%; padding: 10px; border-radius: 12px; margin-top: 8px; font-weight: bold; }
+        
+        .promo-box { margin-top: 20px; padding: 15px; background: #0a0a0a; border-radius: 15px; border: 1px dashed #333; }
+        input { width: 100%; padding: 12px; background: #000; border: 1px solid #222; border-radius: 10px; color: #fff; margin-bottom: 10px; box-sizing: border-box; }
+        
+        #form-page { display: none; }
     </style>
 </head>
 <body>
 
-<div id="main-page" class="container">
-    <h1>Flower Boutique</h1>
+<div id="main-page">
+    <h1>Premium Flowers</h1>
     <div class="grid" id="catalog"></div>
-    
-    <a href="https://t.me/mishaswaga666" class="support-btn">
-        💬 Связаться с продавцом
-    </a>
+    <div class="promo-box">
+        <input type="text" id="promo-input" placeholder="Введите промокод">
+        <div style="font-size: 10px; color: #555; text-align: center;">Например: FLOWERS10</div>
+    </div>
 </div>
 
-<div id="form-page" class="container">
+<div id="form-page">
     <h1>Оформление</h1>
-    <div class="input-group">
-        <label>Ваше Имя</label>
-        <input type="text" id="name" placeholder="Введите имя">
-    </div>
-    <div class="input-group">
-        <label>Телефон</label>
-        <input type="tel" id="phone" placeholder="+7...">
-    </div>
-    <div class="input-group">
-        <label>Адрес доставки</label>
-        <input type="text" id="address" placeholder="Город, улица, дом">
-    </div>
+    <input type="text" id="name" placeholder="Ваше Имя">
+    <input type="tel" id="phone" placeholder="Телефон">
+    <input type="text" id="address" placeholder="Адрес доставки">
 </div>
 
 <script>
     let tg = window.Telegram.WebApp;
-    tg.expand();
-    tg.MainButton.setParams({ color: '#ff4d6d', text_color: '#ffffff' });
-
     let cart = [];
-    // ТВОИ 4 ФОТО
+    let discount = 0;
+
     const products = [
-        {id: 1, name: "Букет 'Элегия'", price: 4200, img: "1.jpg"},
-        {id: 2, name: "Микс 'Романтика'", price: 3500, img: "2.jpg"},
-        {id: 3, name: "Премиум Импорт", price: 7800, img: "3.jpg"},
-        {id: 4, name: "Нежность (S-size)", price: 2900, img: "4.jpg"}
+        {id: 1, name: "Красные Розы", price: 4500, img: "1.jpg"},
+        {id: 2, name: "Белые Пионы", price: 6200, img: "2.jpg"},
+        {id: 3, name: "Весенний Микс", price: 3800, img: "3.jpg"},
+        {id: 4, name: "Тюльпаны", price: 2900, img: "4.jpg"}
     ];
 
     const catalog = document.getElementById('catalog');
     products.forEach(p => {
         catalog.innerHTML += `
             <div class="card">
-                <div class="img-container"><img src="${p.img}" alt="flower"></div>
-                <div class="card-title">${p.name}</div>
-                <div class="card-price">${p.price}₽</div>
-                <button class="add-btn" onclick="add(${p.id})">В КОРЗИНУ</button>
+                <div class="img-box"><img src="${p.img}"></div>
+                <div style="font-size: 12px; margin-bottom: 5px;">${p.name}</div>
+                <div class="price">${p.price}₽</div>
+                <button class="add-btn" onclick="addToCart(${p.id})">В КОРЗИНУ</button>
             </div>`;
     });
 
-    function add(id) {
+    function addToCart(id) {
         const p = products.find(x => x.id === id);
         cart.push(p);
-        const total = cart.reduce((s, x) => s + x.price, 0);
-        tg.MainButton.setText(`ОФОРМИТЬ: ${total}₽`).show();
+        tg.HapticFeedback.impactOccurred('medium'); // Вибрация!
+        updateMainButton();
+    }
+
+    function updateMainButton() {
+        let total = cart.reduce((s, x) => s + x.price, 0);
+        // Проверка промокода (упрощенная для примера)
+        if(document.getElementById('promo-input').value === 'FLOWERS10') {
+            total = Math.floor(total * 0.9);
+            discount = 10;
+        }
+        tg.MainButton.setText(`КУПИТЬ: ${total}₽`).show();
     }
 
     tg.MainButton.onClick(() => {
         if (document.getElementById('main-page').style.display !== 'none') {
             document.getElementById('main-page').style.display = 'none';
             document.getElementById('form-page').style.display = 'block';
-            tg.MainButton.setText('ОТПРАВИТЬ ЗАКАЗ');
-            tg.BackButton.show();
+            tg.MainButton.setText('ПОДТВЕРДИТЬ');
         } else {
-            const name = document.getElementById('name').value;
-            const phone = document.getElementById('phone').value;
-            const addr = document.getElementById('address').value;
-            if (!name || !phone || !addr) return tg.showAlert("Заполни все поля!");
-            
             const data = {
                 items: cart.map(x => x.name).join(", "),
-                total: cart.reduce((s, x) => s + x.price, 0),
-                name: name,
-                phone: phone,
-                address: addr
+                total: cart.reduce((s, x) => s + x.price, 0) * (discount ? 0.9 : 1),
+                name: document.getElementById('name').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value
             };
             tg.sendData(JSON.stringify(data));
-            tg.close();
         }
-    });
-
-    tg.BackButton.onClick(() => {
-        document.getElementById('main-page').style.display = 'block';
-        document.getElementById('form-page').style.display = 'none';
-        tg.BackButton.hide();
     });
 </script>
 </body>
